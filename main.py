@@ -9,7 +9,7 @@ def main():
         print("Please provide a Bandcamp URL as argument")
         return
     elif len(sys.argv) < 3:
-        extension = "mp4"
+        extension = "mp3"
     else:
         extension = sys.argv[2]
 
