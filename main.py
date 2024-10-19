@@ -8,13 +8,17 @@ def main():
     if len(sys.argv) < 2:
         print("Please provide a Bandcamp URL as argument")
         return
+    elif len(sys.argv) < 3:
+        extension = "mp4"
+    else:
+        extension = sys.argv[2]
 
     print("🔥 Bandcamp Download")
     url = sys.argv[1]
     album_name, track_names = extract_album_name(url)
     print(f"📀 {album_name}")
     downloaded_files = download_files(url, album_name)
-    rename_files(album_name, downloaded_files, track_names)
+    rename_files(album_name, downloaded_files, track_names, extension)
     download_cover(url, album_name)
     print("😈 Enjoy")
 
@@ -80,12 +84,12 @@ def download_cover(url, album_name):
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
 
-def rename_files(album_name, downloaded_files, track_names):
+def rename_files(album_name, downloaded_files, track_names, extension):
     print("💻 Renaming files...")
     try:
         for i, old_path in enumerate(downloaded_files):
             track_name = f"{i + 1} - {track_names[i]}" if i < len(track_names) else f"track_{i + 1}"
-            new_path = os.path.join(album_name, f"{track_name}.mp4")
+            new_path = os.path.join(album_name, f"{track_name}.{extension}")
             os.rename(old_path, new_path)
         print("✅ Files renamed")
     except OSError as e:
