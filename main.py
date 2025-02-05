@@ -29,6 +29,7 @@ def extract_album_name(url):
         result = subprocess.check_output(curl_cmd, shell=True, text=True)
         json_data = json.loads(result.strip())
         album_name = json_data.get('name', 'Unknown Album')
+        album_name = sanitize_filename(album_name)
         track_names = extract_track_names(json_data)
         return album_name, track_names
     except subprocess.CalledProcessError as e:
@@ -76,7 +77,7 @@ def download_files(url, album_name):
 def download_cover(url, album_name):
     print("💻 Downloading cover...")
 
-    curl_cmd = f'curl -sS {url} | grep -o \'<meta[^>]*property="og:image"[^>]*content="[^"]*"\' | sed \'s/.*content="\\([^"]*\\)".*/\\1/\' | xargs -I{{}} curl -sS {{}} -o "{album_name}/{album_name}.jpg"'
+    curl_cmd = f'curl -sS {url} | grep -o \'<meta[^>]*property="og:image"[^>]*content="[^"]*"\' | sed \'s/.*content="\\([^"]*\\)".*/\\1/\' | xargs -I{{}} curl -sS {{}} -o "{album_name}/cover.jpg"'
 
     try:
         subprocess.check_call(curl_cmd, shell=True)
