@@ -6,14 +6,14 @@ import re
 
 def main():
     if len(sys.argv) < 2:
-        print("Please provide a Bandcamp URL as argument")
+        print("Provide a BC URL as argument")
         return
     elif len(sys.argv) < 3:
         extension = "mp3"
     else:
         extension = sys.argv[2]
 
-    print("🔥 Bandcamp Download")
+    print("🔥 BCDL")
     url = sys.argv[1]
     album_name, track_names = extract_album_name(url)
     print(f"📀 {album_name}")
