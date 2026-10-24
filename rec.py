@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+
 import signal
 import sys
 from datetime import datetime
 import lameenc
 import numpy as np
 import soundcard as sc
-#pip install soundcard lameenc numpy
+import threading
+#py.exe -m pip install lameenc soundcard numpy
 
 SAMPLE_RATE = 48000
 CHANNELS    = 2
@@ -21,24 +23,28 @@ def stop(sig, frame):
 signal.signal(signal.SIGINT, stop)
 
 def pick_device():
+    spk = sc.default_speaker()
     mics = sc.all_microphones(include_loopback=True)
-    if not mics:
-        sys.exit("No audio input/loopback devices found.")
+    loopbacks = [m for m in mics if m.isloopback]
 
-    loopbacks = [m for m in mics if "loopback" in m.name.lower() or "monitor" in m.name.lower()]
-    if len(loopbacks) == 1:
-        print(f"Using: {loopbacks[0].name}")
-        return loopbacks[0]
+    print("\nDevices (loopback):")
+    default_idx = 0
+    for i, m in enumerate(loopbacks):
+        mark = ""
+        if m.name == spk.name:
+            default_idx = i
+            mark = "  (défaut)"
+        print(f"  [{i}] {m.name}{mark}")
 
-    print("\nAvailable devices:")
-    for i, m in enumerate(mics):
-        print(f"  [{i}] {m.name}")
     while True:
         try:
-            idx = int(input("Select index: "))
-            if 0 <= idx < len(mics):
-                return mics[idx]
-        except (ValueError, KeyboardInterrupt):
+            s = input(f"Select index [{default_idx}]: ").strip()
+            idx = int(s) if s else default_idx
+            if 0 <= idx < len(loopbacks):
+                return loopbacks[idx]
+        except ValueError:
+            pass
+        except (KeyboardInterrupt, EOFError):
             sys.exit()
 
 def main():
@@ -50,15 +56,24 @@ def main():
     encoder.set_channels(CHANNELS)
     encoder.set_quality(2)
 
-    print(f"Recording → {output}\nCtrl+C to stop.\n")
+    print(f"Recording → {output}\nPress Enter to stop.\n")
 
-    with open(output, "wb") as f, \
-         device.recorder(samplerate=SAMPLE_RATE, channels=CHANNELS) as mic:
+    def worker(f, mic):
         while running:
             data = mic.record(numframes=CHUNK)
             pcm  = (data * 32767).astype(np.int16)
             f.write(encoder.encode(pcm.tobytes()))
 
+    with open(output, "wb") as f, \
+         device.recorder(samplerate=SAMPLE_RATE, channels=CHANNELS) as mic:
+        t = threading.Thread(target=worker, args=(f, mic), daemon=True)
+        t.start()
+        try:
+            input()
+        except (KeyboardInterrupt, EOFError):
+            pass
+        stop(None, None)
+        t.join(2)
         f.write(encoder.flush())
 
     print(f"Saved: {output}")
